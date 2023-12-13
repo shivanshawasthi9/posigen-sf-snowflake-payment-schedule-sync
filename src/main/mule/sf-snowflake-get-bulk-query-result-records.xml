@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+	xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd 
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+<flow name="get-bulk-query-result-records" doc:id="7811ff4e-57bc-46f0-8861-5a933f152e4b" >
+		<vm:listener queueName="${vmQueue.queueName}" doc:name="Listener" doc:id="1e9b6f7c-5b62-4424-9196-b0f1d3034186" timeout="${vmQueue.timeout}" config-ref="VM_Config"/>
+		<flow-ref doc:name="get-sf-access-token" doc:id="1b54b690-8a78-4b2a-84f4-5eb5b18b9fc2" name="get-sf-access-token" />
+		<os:retrieve doc:name="jobId" doc:id="2511c3f9-6238-4361-8c9e-cd9fb5db9c2f" key="jobId" objectStore="Object_store" target="jobId"/>
+		<ee:transform doc:name="sfRequest" doc:id="5e5960b4-3985-41bc-a0ea-006a4aa3a95f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="sfRequestHeaders" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"Authorization": "Bearer " ++ vars.accessToken 
+}]]></ee:set-variable>
+				<ee:set-variable variableName="sfRequestQueryParams" ><![CDATA[%dw 2.0
+output application/json
+---
+payload.sfQueryParams default{
+	"maxRecords": p("salesforce.maxRecords")
+}]]></ee:set-variable>
+				<ee:set-variable variableName="sfRequestUriParams" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"jobId": vars.jobId
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<until-successful maxRetries="${untilsuccessful.retries}" doc:name="Until Successful" doc:id="a9505d0e-ce49-464d-a71d-b1e7baa4caf0" millisBetweenRetries="${untilsuccessful.timeout}">
+			<try doc:name="Try" doc:id="2f8150ab-f908-4d93-8d43-37384beee77f" >
+				<http:request method="GET" doc:name="Get Query Bulk Records" doc:id="c87422e5-7aaf-4be7-91d0-dc4fc34b4bac" config-ref="HTTPS_Request_Configuration_Bulk_Query_Records" path="${salesforce.queryBulkRecords.path}">
+			<http:headers><![CDATA[#[vars.sfRequestHeaders]]]></http:headers>
+			<http:uri-params><![CDATA[#[vars.sfRequestUriParams]]]></http:uri-params>
+			<http:query-params><![CDATA[#[vars.sfRequestQueryParams]]]></http:query-params>
+		</http:request>
+				<error-handler >
+					<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="985b8a3a-5825-42ef-9ecc-b24898eb98fe" type="HTTP:CONNECTIVITY,HTTP:TIMEOUT,HTTP:NOT_FOUND,HTTP:UNAUTHORIZED,HTTP:BAD_REQUEST,HTTP:METHOD_NOT_ALLOWED">
+						<logger level="INFO" doc:name="Logger" doc:id="48b84240-d36b-449a-bfc9-a74254944a3a" message='#["HTTP:" ++ error.errorType.identifier ++ " error occurred."]'/>
+					</on-error-propagate>
+				</error-handler>
+			</try>
+
+		</until-successful>
+		<ee:transform doc:name="Read text/csv Payload" doc:id="b55ee323-ee3c-428b-b3c0-8b938d59dcae" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[output application/java
+---
+read(payload.^raw,"text/csv",{separator:",",escape:'"',quote:'"'})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value='#[{&#10;	"maxRecords": p("salesforce.maxRecords"),&#10;	"locator": attributes.headers."Sforce-Locator"&#10;}]' doc:name="sfQueryParams" doc:id="0ac6e15e-4310-4206-a903-3b6abf201c77" variableName="sfQueryParams"/>
+<ee:transform doc:name="snowflakeRecords" doc:id="c0ca2568-bede-4697-b366-9eab1ff423cc">
+					<ee:message>
+					</ee:message>
+			<ee:variables>
+				<ee:set-variable resource="transformations/mapSfRecordstoSnowflake.dwl" variableName="snowflakeRecords" />
+
+			
+
+</ee:variables>
+				</ee:transform>
+				<ee:transform doc:name="split snowflakeRecords" doc:id="d4d65c13-aa49-4dc6-b6b1-dcce96e67a56">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Arrays
+output application/json
+---
+((vars.snowflakeRecords) divideBy 1000)]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="66a02f95-f92b-4d24-ad73-2f7810708d35" >
+			<when expression='#[vars.sfQueryParams.locator != "null"]'>
+				<flow-ref doc:name="publish-sf-records" doc:id="ac50174d-76ee-4a27-a132-bb3b1e3288a9" name="publish-sf-records"/>
+				<vm:publish queueName="${vmQueue.queueName}" doc:id="f95fe980-4e64-4e27-ad57-38640490b4e1" config-ref="VM_Config" timeout="${vmQueue.timeout}" doc:name="VM Queue" sendCorrelationId="ALWAYS">
+			<vm:content><![CDATA[#[{
+	"sfQueryParams": vars.sfQueryParams
+}]]]></vm:content>
+		</vm:publish>
+			
+</when>
+			<otherwise >
+				<flow-ref doc:name="publish-sf-records" doc:id="a8ab498d-e1c0-42a4-8a01-5bdb458393b1" name="publish-sf-records"/>
+				<logger level="INFO" doc:name="Records Processed" doc:id="0c480603-b7e8-4015-92e8-6233defec98a" message='#["No more records present to be fetched from Salesforce."]' />
+			
+</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a04e1f5d-8a6e-40dd-97ca-118895367c0f" >
+				<logger level="INFO" doc:name="Logger" doc:id="743301c1-761f-4574-b5dc-a3cd1a057a39" message='#["HTTP:" ++ error.errorType.identifier ++ " error occurred."]'/>
+			</on-error-propagate>
+		</error-handler>
+	
+</flow>
+	<sub-flow name="publish-sf-records" doc:id="4587d85a-6603-4b0e-ad53-e54d13c7c7ef" >
+		<parallel-foreach doc:name="Parallel For Each" doc:id="d8a85a99-bf60-4479-80b6-2e88efc4dbf5" collection="#[payload]">
+			<anypoint-mq:publish doc:name="Records Queue" doc:id="9df59e37-6916-453f-8553-3e653a2dc1c2" config-ref="Anypoint_MQ_Config" destination="${anypointmq.queueName}" />
+
+		</parallel-foreach>
+		<ee:transform doc:name="Transform Message" doc:id="644c23bf-77ad-4242-8b4d-a6946486bbb3">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+null]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</sub-flow>	
+
+</mule>

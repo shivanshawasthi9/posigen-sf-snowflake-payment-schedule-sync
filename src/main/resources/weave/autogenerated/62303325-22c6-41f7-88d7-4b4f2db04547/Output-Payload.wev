@@ -1,0 +1,14 @@
+%dw 2.0
+
+type auto_62303325_22c6_41f7_88d7_4b4f2db04547_Output_Payload = Array<org_mule_runtime_api_message_Message>
+type org_mule_runtime_api_message_Message = {|
+  payload: Any, 
+  attributes: com_mulesoft_extension_mq_api_attributes_AnypointMQMessagePublishAttributes
+|} {"typeId": "org.mule.runtime.api.message.Message"}
+type com_mulesoft_extension_mq_api_attributes_AnypointMQMessagePublishAttributes = {| messageId: String |} {"typeAlias": "AnypointMQMessagePublishAttributes",
+"typeId": "com.mulesoft.extension.mq.api.attributes.AnypointMQMessagePublishAttributes"}
+
+
+
+
+

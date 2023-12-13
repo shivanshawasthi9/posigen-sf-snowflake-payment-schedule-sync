@@ -1,0 +1,5 @@
+#properties for the dev environment
+snowflake:
+    database: "DATAVAULT_FB_DBTVAULT_CONVERSION"
+anypointmq:
+    url: "https://mq-us-east-1.anypoint.mulesoft.com/api/v1/organizations/5e80670e-27d3-46b0-8e01-46e8f9629410/environments/b5c7a00d-c8f1-43c6-b247-0708aa313723"

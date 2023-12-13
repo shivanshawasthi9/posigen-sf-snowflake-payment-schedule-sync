@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<salesforce:sfdc-config name="POSIGEN_SFDC" doc:name="Salesforce Config" doc:id="06ad3eee-587c-4919-82c2-8f27559a1e05" >
+		<salesforce:basic-connection username="${secure::salesforce.username}" password="${secure::salesforce.password}" securityToken="${secure::salesforce.securityToken}" />
+	</salesforce:sfdc-config>
+	<http:request-config name="HTTPS_Request_Configuration_Bulk_Query_Records" doc:name="HTTP Request configuration" doc:id="b04d90ed-1d48-41c2-9568-95af5bc3d006" responseTimeout="${salesforce.queryBulkRecords.timeout}">
+		<http:request-connection connectionIdleTimeout="60000" protocol="HTTPS" host="${salesforce.queryBulkRecords.host}"/>
+	</http:request-config>
+	<http:request-config name="HTTPS_Request_Configuration_SF_Token" doc:name="HTTP Request configuration" doc:id="b13bd339-21e6-4af6-9ed3-45808337069a" responseTimeout="${salesforce.accessToken.timeout}">
+		<http:request-connection protocol="HTTPS" host="${salesforce.accessToken.host}" />
+	</http:request-config>
+	
+	<snowflake:snowflake-config name="SNOWFLAKE_MAIN" doc:name="Snowflake Config" doc:id="d5cdedd9-a640-4691-8b83-daeacf178065" >
+		<snowflake:snowflake-connection accountName="${snowflake.accountName}" warehouse="${snowflake.warehouse}" database="${snowflake.database}" schema="${snowflake.schema}" user="${secure::snowflake.user}" password="${secure::snowflake.password}" role="${snowflake.role}" >
+			<snowflake:pooling-profile maxPoolSize="${snowflake.maxPoolSize}" minPoolSize="${snowflake.minPoolSize}" />
+		</snowflake:snowflake-connection>
+	</snowflake:snowflake-config>
+	<snowflake:snowflake-config name="SNOWFLAKE_LOGGING" doc:name="Snowflake Config" doc:id="c851f97b-684f-4683-a6fb-79357cdc373c" >
+		<snowflake:snowflake-connection accountName="${snowflake.accountName}" warehouse="${snowflake.warehouse}" database="${snowflake.database}" schema="${snowflake.logging.schema}" user="${secure::snowflake.user}" password="${secure::snowflake.password}" role="${snowflake.role}" />
+	</snowflake:snowflake-config>
+	<anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="ef67394c-ca06-42b5-8da1-638889563d51" >
+		<anypoint-mq:connection url="${anypointmq.url}" clientId="${secure::anypointmq.clientId}" clientSecret="${secure::anypointmq.clientSecret}" />
+	</anypoint-mq:config>
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="cc2e4fcb-5d96-47e4-b9b1-ad081e140d4d" entryTtl="${objectStore.entryTtl}" expirationInterval="${objectStore.expirationInterval}"/>
+	<configuration-properties doc:name="Configuration properties" doc:id="99666951-c010-45e9-941a-7f6b493da76f" file="properties\posigen-sf-payment-schedule-sync-${env}-properties.yaml" />
+	<global-property doc:name="Global Property" doc:id="e4dcf6fe-2a3d-4947-878d-1deb7fc057c5" name="env" value="PROD" />
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="5c45a800-5518-46cc-934d-86fab0ce58d2" >
+		<http:listener-connection host="localhost" port="${http.port}" />
+	</http:listener-config>
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="19f0004f-1bf6-4c41-8e13-69346a233285" file="properties\posigen-sf-payment-schedule-sync-secure-${env}-properties.yaml" key="${mule.key}" />
+	<configuration doc:name="Configuration" doc:id="4d0e6e21-ecae-4703-b009-dce6b5df9940" defaultErrorHandler-ref="global-error-handler" />
+	<configuration-properties doc:name="Configuration properties" doc:id="1fc040fe-a741-4194-97a0-e54917cecf4c" file="properties\posigen-sf-payment-schedule-sync-common-properties.yaml" />
+	<global-property doc:name="Global Property" doc:id="7b9b8024-faa5-49a2-a137-98ffcf7ec90f" name="mule.key" value="posigenmule@2023" />
+	<vm:config name="VM_Config" doc:name="VM Config" doc:id="b342cd5a-93b0-4453-a624-658afb01540e" >
+		<vm:queues >
+			<vm:queue queueName="${vmQueue.queueName}" queueType="PERSISTENT" />
+		</vm:queues>
+	</vm:config>
+
+</mule>

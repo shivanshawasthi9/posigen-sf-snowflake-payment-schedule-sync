@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+						http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+						http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="sf-snowflake-logging-flow" doc:id="c8f60757-fd8c-4a14-95b8-30cdde6815cd" >
+		<os:retrieve doc:name="loggingVar" doc:id="5b411f47-d5a1-47aa-940d-900222dfd0ba" key="loggingVar" target="loggingVar" objectStore="Object_store">
+					<os:default-value><![CDATA[#[{}]]]></os:default-value>
+				</os:retrieve>
+		<snowflake:insert doc:name="log-job-info" doc:id="82193de8-3d23-4afd-84fa-3385b1a19db8" config-ref="SNOWFLAKE_LOGGING">
+					<snowflake:sql><![CDATA[${snowflake.logging.insertQuery}]]></snowflake:sql>
+					<snowflake:input-parameters><![CDATA[#[vars.loggingVar]]]></snowflake:input-parameters>
+				</snowflake:insert>
+	</sub-flow>
+</mule>

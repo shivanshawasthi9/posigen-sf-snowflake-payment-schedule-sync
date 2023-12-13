@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+	http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd">
+	<sub-flow name="get-latest-scheduler-start-time" doc:id="026ef9a6-992a-4d30-aefc-cba14b28f36d" >
+		<snowflake:select doc:name="get-latest-scheduler-start-time" doc:id="0aa4fc9b-00d2-40f1-a3f5-0130e88dce10" target="schedulerStartTime" config-ref="SNOWFLAKE_LOGGING">
+			<snowflake:sql><![CDATA[${snowflake.logging.schedulerStartTimeQuery}]]></snowflake:sql>
+			<snowflake:parameter-types />
+			<snowflake:input-parameters><![CDATA[#[{
+	'source': vars.sourceData.source,
+	'recordSource': vars.sourceData.record,
+	'type': 'SF_OBJECT'
+}]]]></snowflake:input-parameters>
+		</snowflake:select>
+		<logger level="INFO" doc:name="schedulerStartTime" doc:id="19c3f7da-2d84-429b-bbeb-6dce3aeb3b0b" message='#["Latest SchedulerStartTime: " ++ vars.schedulerStartTime[0].SCHEDULERSTARTTIME]' />
+	</sub-flow>
+	
+</mule>

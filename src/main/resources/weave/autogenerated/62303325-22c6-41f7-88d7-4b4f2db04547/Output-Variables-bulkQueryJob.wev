@@ -1,0 +1,19 @@
+%dw 2.0
+
+type auto_62303325_22c6_41f7_88d7_4b4f2db04547_Output_Variables_bulkQueryJob = {|
+  apiVersion?: String, 
+  columnDelimiter?: String, 
+  concurrencyMode?: String, 
+  contentType?: String, 
+  createdById?: String, 
+  createdDate?: String, 
+  id?: String, 
+  lineEnding?: String, 
+  object?: String, 
+  operation?: String, 
+  state?: String, 
+  systemModstamp?: String
+|} {"typeAlias": "QueryJobState",
+"class": "org.mule.extension.salesforce.api.bulk.QueryJobState",
+"typeId": "org.mule.extension.salesforce.api.bulk.QueryJobState"}
+

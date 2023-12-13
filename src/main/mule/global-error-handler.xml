@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd">
+	<error-handler name="global-error-handler"
+		doc:id="4fc5e9ac-3cf5-4222-a1ee-66ecf97dfeed">
+		<on-error-propagate type="CONNECTIVITY"
+			logException="true" enableNotifications="true">
+			<set-variable variableName="httpStatus" value="504"
+				doc:name="httpStatus-504" />
+			<flow-ref name="log-error-response" doc:name="log-error-response" doc:id="36046f0c-ca42-40e3-af0d-da4b597ca2f7"/>
+		
+</on-error-propagate>
+		<on-error-propagate type="SECURITY"
+			logException="true" enableNotifications="true">
+			<choice>
+				<when
+					expression="#[error.errorType.identifier == 'UNAUTHORIZED']">
+					<set-variable variableName="httpStatus" value="401"
+						doc:name="httpStatus-401" />
+				</when>
+				<otherwise>
+					<set-variable variableName="httpStatus" value="403"
+						doc:name="httpStatus-403" />
+				</otherwise>
+			</choice>
+			<flow-ref name="log-error-response" doc:name="log-error-response" doc:id="d8dda73f-7c7a-46f7-a40c-4da3d3d380d7"/>
+		
+</on-error-propagate>
+		<on-error-propagate type="ANY" logException="true"
+			enableNotifications="true">
+			<choice>
+				<when expression="#[error.errorType.namespace == 'APIKIT']">
+					<choice>
+						<when
+							expression="#[error.errorType.identifier == 'BAD_REQUEST']">
+							<set-variable variableName="httpStatus" value="400"
+								doc:name="httpStatus-400" />
+						</when>
+						<when
+							expression="#[error.errorType.identifier == 'NOT_FOUND']">
+							<set-variable variableName="httpStatus" value="404"
+								doc:name="httpStatus-404" />
+						</when>
+						<when
+							expression="#[error.errorType.identifier == 'METHOD_NOT_ALLOWED']">
+							<set-variable variableName="httpStatus" value="405"
+								doc:name="httpStatus-405" />
+						</when>
+						<when
+							expression="#[error.errorType.identifier == 'NOT_ACCEPTABLE']">
+							<set-variable variableName="httpStatus" value="406"
+								doc:name="httpStatus-406" />
+						</when>
+						<when
+							expression="#[error.errorType.identifier == 'UNSUPPORTED_MEDIA_TYPE']">
+							<set-variable variableName="httpStatus" value="415"
+								doc:name="httpStatus-415" />
+						</when>
+						<when
+							expression="#[error.errorType.identifier == 'NOT_IMPLEMENTED']">
+							<set-variable variableName="httpStatus" value="501"
+								doc:name="httpStatus-501" />
+						</when>
+					
+</choice>
+				</when>
+				<otherwise>
+					<set-variable variableName="httpStatus"
+						value="#[if(vars.httpStatus != null) vars.httpStatus else 500]"
+						doc:name="httpStatus-500" />
+				</otherwise>
+			</choice>
+			<flow-ref name="log-error-response" doc:name="log-error-response" doc:id="bb1e7162-f020-4f89-ab61-89118a6ab963"/>
+		
+</on-error-propagate>
+	</error-handler>
+	<sub-flow name="log-error-response" doc:id="d1cf2f28-1a5a-4c52-a41f-b464b996cd5a" >
+		<logger level="INFO" doc:name="Log Error" doc:id="e7142000-35b9-4ed6-974c-121075610887" message="#[error]"/>
+	
+</sub-flow>
+</mule>

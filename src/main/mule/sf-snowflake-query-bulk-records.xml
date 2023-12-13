@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake"
+	xmlns:vm="http://www.mulesoft.org/schema/mule/vm"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	
+	<sub-flow name="query-bulk-records" doc:id="c1b00b2f-5264-489a-b0d2-47a2006eb84f" >
+		<salesforce:create-query-job-bulk-api-v2 doc:name="create-bulk-query-job" doc:id="8f7ebb34-3494-4329-aa0e-bfa968cdae96" config-ref="POSIGEN_SFDC" query="#[vars.sfdcQuery.soql]" target="bulkQueryJob" columnDelimiter="${salesforce.columnDelimiter}" lineEnding="${salesforce.lineEnding}">
+			<reconnect />
+
+		</salesforce:create-query-job-bulk-api-v2>
+		<os:store doc:name="jobId" doc:id="d3af2832-73d5-4d3f-afd2-bf8f4a8cb717" key="jobId" objectStore="Object_store">
+			<os:value ><![CDATA[#[vars.bulkQueryJob.id]]]></os:value>
+		</os:store>
+		<choice doc:name="" doc:id="45b9c00f-f453-4ec6-ad39-d3209cf16d85" >
+			<when expression="#[!isEmpty(vars.bulkQueryJob.id)]">
+				
+					<until-successful maxRetries="${untilsuccessful.retries}" doc:name="Until Successful" doc:id="2627aa84-c71c-483d-9a2a-5abac1fc8133" millisBetweenRetries="${untilsuccessful.timeout}">
+					<salesforce:get-query-job-info-bulk-api-v2 doc:name="get-bulk-query-job-info" doc:id="4e7b1730-a0fe-4d4a-b357-e411988b11b7" config-ref="POSIGEN_SFDC" id="#[vars.bulkQueryJob.id]" />
+					<validation:is-true doc:name="check-job-completed" doc:id="40025b0a-80fd-4696-870a-f9d8789dcd86" expression='#[lower(payload.state default "") == "jobcomplete"]' message='#["Job with jobId " ++ (vars.bulkQueryJob.id default "UNKNOWN") ++ " is still in progress."]' />
+				
+</until-successful>
+				<logger level="INFO" doc:name="Total Records" doc:id="6b7d178f-96b5-409d-b76d-2bb5074c1783" message='#["Total Records Fetched:" ++ payload.numberRecordsProcessed]'/>
+				<os:store doc:name="sfTotalRecords" doc:id="cc4c0a2b-d12d-4ba6-8fbf-715d738dc25c" key="sfTotalRecords" objectStore="Object_store">
+					<os:value ><![CDATA[#[payload.numberRecordsProcessed]]]></os:value>
+					</os:store>
+				<snowflake:select doc:name="initialRecords" doc:id="eb158959-a44a-4d14-b9d1-9d47cec1bb8d" config-ref="SNOWFLAKE_MAIN" target="initialRecords">
+					<snowflake:sql ><![CDATA[${snowflake.getTotalRowsQuery}]]></snowflake:sql>
+				</snowflake:select>
+				<os:store doc:name="initialRecords" doc:id="8d80cf8c-61a3-4e86-b3e7-103e5b57c088" key="initialRecords" objectStore="Object_store">
+					<os:value ><![CDATA[#[vars.initialRecords[0]."COUNT(*)"]]]></os:value>
+				</os:store>
+				<flow-ref doc:name="get-bulk-query-result-records" doc:id="5b53a4a5-6a0b-4d60-8504-6d6b19de6137" name="get-bulk-query-result-records" />
+					
+					<!-- <until-successful maxRetries="${bulk.query.untilsuccessful.retries}" doc:name="Until Successful" doc:id="16eb916c-6535-40bf-8abf-fe7d460ca277" millisBetweenRetries="${bulk.query.untilsuccessful.timeout}"> -->
+					<!-- </until-successful> -->
+					
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Empty Job Id" doc:id="687122fc-383e-4bd1-b9a5-0f225a3e6ad6" message='#["Job id is empty."]'/>
+			</otherwise>
+		
+</choice>
+	</sub-flow>
+	
+
+</mule>

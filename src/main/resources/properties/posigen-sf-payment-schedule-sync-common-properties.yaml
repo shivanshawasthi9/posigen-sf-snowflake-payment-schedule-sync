@@ -1,0 +1,49 @@
+app:
+  name: "posigen-sf-snowflake-sitetracker-payment-schedule-sync"
+http:
+    port: "8081"
+scheduler:
+    frequency: "30"
+    startDelay: "0"
+salesforce:
+    query: "SELECT Billing_Amount__c,CreatedById,CreatedDate,Escalated_Pricing_Value__c,Id,LastActivityDate,LastModifiedById,LastModifiedDate,LastReferencedDate,LastViewedDate,Name,Opportunity__c,OwnerId,Payment_Schedule_Name__c,Payment_Type__c,Pricing_Period__c,Pricing_Term__c,SystemModstamp,Upsert_Id__c FROM Payment_Schedule__c"
+    columnDelimiter: "COMMA"
+    lineEnding: "CRLF"
+    maxRecords: "20000"
+    grant_type: "password"
+    object: "Payment_Schedule__c"
+    limit: "none"
+    accessToken:
+        host: "login.salesforce.com"
+        path: "/services/oauth2/token"
+        timeout:  "120000"
+    queryBulkRecords:
+        host:  "posigen3.my.salesforce.com"
+        path: "/services/data/v51.0/jobs/query/{jobId}/results"
+        timeout:  "120000"
+snowflake:
+    accountName: "xv37144.us-central1.gcp"
+    warehouse: "MULESOFT"
+    schema: "SOURCE"
+    role: "ACCOUNTADMIN"
+    record: "Payment Schedule"
+    source: "POSIGEN3_SF"
+    bulkInsert:  "INSERT INTO  SRC_SF_PAYMENT_SCHEDULE (ID,OWNER_ID,NAME,CREATED_DATE,CREATED_BY_ID,LAST_MODIFIED_DATE,LAST_MODIFIED_BY_ID,SYSTEM_MODSTAMP,UPSERT_ID_C,BILLING_AMOUNT_C,ESCALATED_PRICING_VALUE_C,OPPORTUNITY__C,PAYMENT_SCHEDULE_NAME_C,PAYMENT_TYPE_C,PRICING_PERIOD_C,PRICING_TERM_C) VALUES (:ID,:OWNER_ID,:NAME,:CREATED_DATE,:CREATED_BY_ID,:LAST_MODIFIED_DATE,:LAST_MODIFIED_BY_ID,:SYSTEM_MODSTAMP,:UPSERT_ID_C,:BILLING_AMOUNT_C,:ESCALATED_PRICING_VALUE_C,:OPPORTUNITY__C,:PAYMENT_SCHEDULE_NAME_C,:PAYMENT_TYPE_C,:PRICING_PERIOD_C,:PRICING_TERM_C)"
+    logging:
+        schema: "LOGGING"
+        insertQuery: "INSERT INTO MULESOFT_JOB_LOG (LOAD_DATE,RECORD_SOURCE,SOURCE,TYPE,SCHEDULERSTARTTIME,ISSCHEDULE)VALUES(:LOAD_DATE, :RECORD_SOURCE, :SOURCE, :TYPE, :SCHEDULERSTARTTIME, :ISSCHEDULE)"
+        schedulerStartTimeQuery: 'SELECT SCHEDULERSTARTTIME FROM MULESOFT_JOB_LOG WHERE TYPE=:type AND SOURCE=:source AND "RECORD_SOURCE"=:recordSource ORDER BY SCHEDULERSTARTTIME DESC LIMIT 1'
+    getTotalRowsQuery:  "SELECT COUNT(*) FROM  SRC_SF_PAYMENT_SCHEDULE"
+    maxPoolSize:  "20"
+    minPoolSize:  "10"
+anypointmq:
+    queueName: "sf-snowflake-payment-schedule-queue"
+objectStore:
+    entryTtl: "0"
+    expirationInterval: "1"
+untilsuccessful:
+    retries:  "20"
+    timeout:  "30000"
+vmQueue:
+    queueName: "sf-snowflake-vm-queue"
+    timeout: "60"    

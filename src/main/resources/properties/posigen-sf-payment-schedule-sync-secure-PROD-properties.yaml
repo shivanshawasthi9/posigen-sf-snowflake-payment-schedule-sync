@@ -1,0 +1,13 @@
+#secure properties for the prod environment
+salesforce:
+    username: "![nNkwjbP256NpyEPfQZ8eXxlcjo6GapOFe8O4X1+o6mI=]"
+    password: "![gTsjQi1gMgoXl96vDFUn/Q==]"
+    securityToken: "![R+7lz6pAJ94tEcb5IVdLUKx3lEmis8QZW81voB2Em4Q=]"
+    consumerKey: "![xb1VGGofXbJgxoxAD/3Fy+NN7stKisXuJ9c1l3aguojhO+kZGsKmMUKnScD3F/RS3SxnqFqYy5B2TY1QJ2l3sIhqCMnOM95mSpzliezen/2pNmPdUIPQY8zfKYPhbEWK]"
+    consumerSecret: "![mzSlV4Q+UoFPAKn3G8qQ8y/w3flxYjh8H3yTdLPFKMkuzozwnEK44f/qKfEh4VHju9x42jJuNPVXMQ1OXu1WJWjpAusjZ5y86WnkHmbtpM8=]"
+snowflake:
+    user: "![edZ2rEEzHdxe6jxlIBdBz55qeOKuUtJ03LUjg0XFPYc=]"
+    password: "![t845gVLbAuv39mIZ9vPy6g==]"
+anypointmq:
+    clientId: "![ZFd5ICHZ1w86vgkI0fJCRKnYo5pZT5QWK16b4joIf7TC1BwHw0fNjC3UTWbfnZ/k]"
+    clientSecret: "![8JdYFwk+91YctMuBT/vEHBCQ6EcrIlCtFdvAWYcBFEbbaAYZW4wSJlP3XEzqRqce]"

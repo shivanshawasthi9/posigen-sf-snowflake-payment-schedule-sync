@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<flow name="process-records-flow" doc:id="f1f82c86-6559-4c1c-8806-b0bfb7706f3b">
+		<anypoint-mq:subscriber doc:name="Subscriber" doc:id="46f77b40-043f-4ef6-b3ee-1dd9c94a507d" config-ref="Anypoint_MQ_Config" destination="${anypointmq.queueName}" acknowledgementMode="IMMEDIATE"/>
+		<os:retrieve doc:name="sfTotalRecords" doc:id="9ed21bf0-f92c-4264-81f2-73ebbe398f06" key="sfTotalRecords" target="sfTotalRecords" objectStore="Object_store">
+			<os:default-value><![CDATA[#[0]]]></os:default-value>
+		</os:retrieve>
+		<os:retrieve doc:name="initialRecords" doc:id="c1cc5574-ab10-45cc-af7f-02461f86bae1" key="initialRecords" objectStore="Object_store" target="initialRecords">
+			<os:default-value ><![CDATA[#[0]]]></os:default-value>
+		</os:retrieve>
+		<snowflake:bulk-insert doc:name="sf-records-to-snowflake" doc:id="4a685231-cc45-4385-85f3-05bb72ab442c" config-ref="SNOWFLAKE_MAIN">
+			<snowflake:sql ><![CDATA[${snowflake.bulkInsert}]]></snowflake:sql>
+		</snowflake:bulk-insert>
+		<snowflake:select doc:name="finalRecords" doc:id="8ebc9007-4957-420c-b09e-12ab38ea2ae6" config-ref="SNOWFLAKE_MAIN" target="finalRecords" targetValue='#[payload[0]."COUNT(*)"]'>
+			<snowflake:sql ><![CDATA[${snowflake.getTotalRowsQuery}]]></snowflake:sql>
+		</snowflake:select>
+		<choice doc:name="Choice" doc:id="0e0c84a6-546e-4356-b70c-2e9b0738dc7c" >
+			<when expression='#[((vars.sfTotalRecords)==((vars.finalRecords)-(vars.initialRecords)))]'>
+				
+				<logger level="INFO" doc:name="Total Records Inserted" doc:id="3acf2418-5acd-4706-acb1-5bcfbdc3eccb" message='#["Total records inserted into Snowflake = " ++ (vars.finalRecords)]'/>
+				<flow-ref doc:name="sf-snowflake-logging-flow" doc:id="94bb4a04-768a-4e5e-a18a-bb8b4f03c55c" name="sf-snowflake-logging-flow"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="bb7f1fe1-2067-4397-a4b0-8679e24602e1" message='#[(vars.finalRecords) ++ " records inserted."]'/>
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="a3dd6475-6e9c-459f-abc5-00cab96569db" >
+				<logger level="INFO" doc:name="Logger" doc:id="b1b6c020-9ac5-48ab-a1f7-156cf979869e" message='#["Error while processing message."]' />
+				<anypoint-mq:publish doc:name="Publish" doc:id="12aee49c-77d2-4457-a43c-3a0cc12846c9" config-ref="Anypoint_MQ_Config" destination="${anypointmq.queueName}">
+				</anypoint-mq:publish>
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

@@ -1,0 +1,5 @@
+#properties for the prod environment
+snowflake:
+    database: "DATAVAULT"
+anypointmq:
+    url: "https://mq-us-east-1.anypoint.mulesoft.com/api/v1/organizations/5e80670e-27d3-46b0-8e01-46e8f9629410/environments/dcb8e33c-9db6-48a6-b5c0-f5d9e43e3bd4"

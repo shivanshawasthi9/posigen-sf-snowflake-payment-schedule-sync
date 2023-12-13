@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:snowflake="http://www.mulesoft.org/schema/mule/snowflake" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/snowflake http://www.mulesoft.org/schema/mule/snowflake/current/mule-snowflake.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="sf-snowflake-scheduler-start-time" doc:id="083919a8-5600-4220-aea8-2da712633502" >
+		<ee:transform doc:name="sourceData" doc:id="a122a2d1-7575-4278-baac-063b000f308b">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="sourceData"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"source": payload.snowflake.source default "",
+	"record": payload.snowflake.record default "",
+}
+]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="get-latest-scheduler-start-time" doc:id="70b13ef9-bf33-456d-bda5-4d8caea24077" name="get-latest-scheduler-start-time" />
+		<ee:transform doc:name="soql" doc:id="0aacd845-d4ac-4484-8fd8-676317b2de69">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="sfdcQuery" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	soql: (payload.salesforce.soql) ++ " where LASTMODIFIEDDATE > " ++ vars.schedulerStartTime[0].SCHEDULERSTARTTIME
+}]]></ee:set-variable>
+			
+</ee:variables>
+		</ee:transform>
+		<os:store doc:name="loggingVar" doc:id="e5d94d4c-8d80-4f96-8e2e-a606d34d7166" key="loggingVar" objectStore="Object_store">
+			<os:value><![CDATA[#[output application/json
+---
+{
+	"LOAD_DATE": (now() as DateTime >> "GMT") as String,
+	"RECORD_SOURCE": vars.sourceData.record,
+	"SOURCE": vars.sourceData.source,
+	"TYPE": "SF_OBJECT",
+	"SCHEDULERSTARTTIME": (now()) as String {format: "y-MM-dd'T'HH:mm:ssZ"},
+	"ISSCHEDULE": "TRUE",
+	"PREV_RUN": vars.schedulerStartTime[0].SCHEDULERSTARTTIME
+}]]]></os:value>
+		</os:store>
+		<flow-ref doc:name="query-bulk-records" doc:id="09dd4e80-288e-4de4-9e89-22c262464ef4" name="query-bulk-records" />
+	</sub-flow>
+
+</mule>

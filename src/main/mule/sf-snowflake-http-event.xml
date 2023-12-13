@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="app-main-http-listener" doc:id="f8073116-3b5f-4c1e-b132-5140de843277" >
+		<http:listener doc:name="Listener" doc:id="02db9495-fc68-4613-b455-ef7cf149a7c1" path="/test" config-ref="HTTP_Listener_config"/>
+		<flow-ref doc:name="sf-and-snowflake-query" doc:id="580057fb-de4f-44ee-8f8d-854a7b53de01" name="sf-and-snowflake-query"/>
+	
+</flow>
+</mule>

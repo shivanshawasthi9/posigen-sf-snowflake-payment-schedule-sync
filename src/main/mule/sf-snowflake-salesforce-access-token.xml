@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd">
+	<sub-flow name="get-sf-access-token" doc:id="d205d63b-7b88-4cd4-8e3a-e20abead4115" >
+		<ee:transform doc:name="sfTokenQueryParams" doc:id="24ce1c6b-9c51-4c8b-aa70-675c84c18193">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="sfTokenQueryParams"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"client_id": p("secure::salesforce.consumerKey"),
+	"client_secret": p("secure::salesforce.consumerSecret"),
+	"username": p("secure::salesforce.username"),
+	"password": p("secure::salesforce.password"),
+	"grant_type": p("salesforce.grant_type"),
+	"security_token": p("secure::salesforce.securityToken")
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+		
+			<until-successful maxRetries="${untilsuccessful.retries}" doc:name="Until Successful" doc:id="451de636-7937-4d07-85ac-deaba32d15cc" millisBetweenRetries="${untilsuccessful.timeout}">
+				<try doc:name="Try" doc:id="e7800f9a-b892-41bd-8e22-01b6ce8c0938" >
+					<http:request method="POST" doc:name="GET SF Access Token" doc:id="0d18449a-318d-47e5-a880-9cde3ed4170f" target="accessToken" targetValue='#[payload."access_token"]' config-ref="HTTPS_Request_Configuration_SF_Token" path="${salesforce.accessToken.path}">
+			<http:query-params><![CDATA[#[vars.sfTokenQueryParams]]]></http:query-params>
+		</http:request>
+					<error-handler >
+						<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e3b61e41-6653-4a75-ad2f-c7b3685c4e78" type="HTTP:CONNECTIVITY,HTTP:TIMEOUT,HTTP:NOT_FOUND,HTTP:UNAUTHORIZED,HTTP:BAD_REQUEST,HTTP:METHOD_NOT_ALLOWED">
+							<logger level="INFO" doc:name="Logger" doc:id="c08c5638-0c51-4a16-8952-382206c4b306" message='#["HTTP:" ++ error.errorType.identifier ++ " error occurred."]'/>
+						</on-error-propagate>
+					</error-handler>
+				</try>
+			</until-successful>
+		
+	</sub-flow>
+</mule>
